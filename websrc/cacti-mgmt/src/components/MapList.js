@@ -39,7 +39,6 @@ class MapList extends Component {
         });
 
         return <div>
-            <p>TODO: Align table columns between groups?</p>
             {groups}
         </div>
     }

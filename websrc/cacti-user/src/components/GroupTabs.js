@@ -16,7 +16,6 @@ const GroupTabs = (props) => {
 
         return (
             <div className="GroupTabs layoutbox">
-                <h3>Groups:</h3>
                 {
                     my_groups.map((group) => {
                         let cls = "tab";

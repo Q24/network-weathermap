@@ -28,7 +28,6 @@ class WMUserApp extends React.Component {
 
     return (
         <div className="WMUserApp layoutbox">
-          <small>(The Base URL is {this.props.url}, passed from outside)</small>
           <HashRouter>
             <div>
               <Route exact path="/" render={() => <Redirect to="/group/default"/>}/>

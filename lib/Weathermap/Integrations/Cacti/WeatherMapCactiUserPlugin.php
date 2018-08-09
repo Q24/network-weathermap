@@ -256,8 +256,6 @@ class WeatherMapCactiUserPlugin extends UIBase
         // get the locale from host app
         $locale = $this->manager->application->getLocale();
 
-        print "<small>This is the React UI below here</small>";
-        print "<h1>INCOMPLETE</h1>";
         print '<style>@import "cacti-resources/user/main.css"</style>';
         print '<script type="text/javascript" src="overlib.js"></script>';
 
