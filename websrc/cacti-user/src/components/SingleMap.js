@@ -72,7 +72,6 @@ class SingleMap extends Component {
   render() {
     return (
         <div className="SingleMap layoutbox">
-          <p>single map view (no group tabs, just a map) (and maybe a combo selector)</p>
           {this.state.redirect && this.state.selectedMap && <Redirect to={`/map/${this.state.selectedMap.filehash}`}/>}
           {this.state.loading && <span>{'Loading'}</span>}
           {this.state.selectOptions && <Selector id="mapselector"
