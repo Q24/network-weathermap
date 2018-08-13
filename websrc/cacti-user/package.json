@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "html-loader": "^0.5.5",
-    "react-scripts": "1.0.14",
+    "react-scripts": "^1.1.4",
     "watch": "^1.0.2"
   },
   "scripts": {
