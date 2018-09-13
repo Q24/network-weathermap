@@ -40,7 +40,7 @@ class RRDTool extends Base
         //var_dump($map);
         global $config;
 
-        if ($map->context == 'editor') {
+        if ($map->context == 'cacti') {
             MapUtility::debug("RRD DS: path_rra is " . $config["rra_path"] . " - your rrd pathname must be exactly this to use poller_output\n");
             // save away a couple of useful global SET variables
             $map->addHint("cacti_path_rra", $config["rra_path"]);
@@ -50,7 +50,7 @@ class RRDTool extends Base
         $usePollerOutput = intval($map->getHint('rrd_use_poller_output'));
 
         # Are we in Cacti?
-        if ($usePollerOutput && $map->context != 'editor') {
+        if ($usePollerOutput && $map->context != 'cacti') {
             MapUtility::warn("Can't use poller_output from command-line - disabling rrd_use_poller_output [WMRRD99]\n");
             $map->addHint("rrd_use_poller_output", 0);
         }
@@ -68,7 +68,7 @@ class RRDTool extends Base
         if ($map->context == 'cli') {
             MapUtility::warn("RRD DS: Can't find RRDTOOL. Check line 29 of the 'weathermap' script.\nRRD-based TARGETs will fail. [WMRRD02]\n");
         }
-        if ($map->context == 'editor') {    // unlikely to ever occur
+        if ($map->context == 'cacti') {    // unlikely to ever occur
             MapUtility::warn("RRD DS: Can't find RRDTOOL. Check your Cacti config. [WMRRD03]\n");
         }
 
