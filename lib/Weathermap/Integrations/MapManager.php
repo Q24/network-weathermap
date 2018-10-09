@@ -2,8 +2,8 @@
 
 namespace Weathermap\Integrations;
 
-use PDOException;
 use PDO;
+use PDOException;
 
 /**
  * All the database-access functions extracted from the old Cacti plugin.
@@ -121,10 +121,10 @@ class MapManager
     {
         if (is_null($groupId)) {
             // $statement = $this->pdo->prepare("SELECT DISTINCT weathermap_maps.* FROM weathermap_auth,weathermap_maps WHERE weathermap_maps.id=weathermap_auth.mapid AND active='on' AND  (userid=? OR userid=0) ORDER BY sortorder, id");
-            $statement = $this->pdo->prepare("SELECT DISTINCT group_id, titlecache, filehash, thumb_width, thumb_height, configfile, sortorder FROM weathermap_auth,weathermap_maps WHERE weathermap_maps.id=weathermap_auth.mapid AND active='on' AND  (userid=? OR userid=0) ORDER BY group_id, sortorder");
+            $statement = $this->pdo->prepare("SELECT DISTINCT group_id, titlecache, filehash, thumb_width, thumb_height, configfile, warncount, sortorder FROM weathermap_auth,weathermap_maps WHERE weathermap_maps.id=weathermap_auth.mapid AND active='on' AND  (userid=? OR userid=0) ORDER BY group_id, sortorder");
             $statement->execute(array($userId));
         } else {
-            $statement = $this->pdo->prepare("SELECT DISTINCT group_id, titlecache, filehash, thumb_width, thumb_height, configfile, sortorder FROM weathermap_auth,weathermap_maps WHERE weathermap_maps.id=weathermap_auth.mapid AND active='on' AND  weathermap_maps.group_id=? AND  (userid=? OR userid=0) ORDER BY group_id, sortorder");
+            $statement = $this->pdo->prepare("SELECT DISTINCT group_id, titlecache, filehash, thumb_width, thumb_height, configfile, warncount, sortorder FROM weathermap_auth,weathermap_maps WHERE weathermap_maps.id=weathermap_auth.mapid AND active='on' AND  weathermap_maps.group_id=? AND  (userid=? OR userid=0) ORDER BY group_id, sortorder");
             //$statement = $this->pdo->prepare("SELECT DISTINCT weathermap_maps.* FROM weathermap_auth,weathermap_maps WHERE weathermap_maps.id=weathermap_auth.mapid AND active='on' AND  weathermap_maps.group_id=? AND  (userid=? OR userid=0) ORDER BY sortorder, id");
             $statement->execute(array($groupId, $userId));
         }
@@ -205,6 +205,16 @@ class MapManager
     {
         $this->updateMap($mapId, array('group_id' => $groupId));
         $this->resortMaps();
+    }
+
+    public function mapExists($mapId)
+    {
+        $statement = $this->pdo->prepare("SELECT id FROM weathermap_maps WHERE id = ?");
+        $statement->execute(array($mapId));
+        if ($statement->rowCount() == 1) {
+            return true;
+        }
+        return false;
     }
 
     public function deleteMap($id)
@@ -355,7 +365,7 @@ class MapManager
         }
     }
 
-    public function updateMapSetting($settingId, $name, $value)
+    public function updateMapSetting($mapId, $settingId, $name, $value)
     {
         $data = array("optname" => $name, "optvalue" => $value);
 
@@ -363,8 +373,9 @@ class MapManager
         list($set, $values) = $this->buildSet($data, $allowed);
 
         $values['id'] = $settingId;
+        $values['mapid'] = $mapId;
 
-        $stmt = $this->pdo->prepare("UPDATE weathermap_settings SET $set where id=:id");
+        $stmt = $this->pdo->prepare("UPDATE weathermap_settings SET $set where id=:id and mapid=:mapid");
         $stmt->execute($values);
     }
 
@@ -421,7 +432,6 @@ class MapManager
         $statement = $this->pdo->prepare("SELECT * FROM weathermap_settings WHERE mapid=?");
         $statement->execute(array(intval($mapId)));
         return $statement->fetchAll(PDO::FETCH_OBJ);
-
     }
 
     public function getMapSettingById($settingId)
@@ -471,6 +481,8 @@ class MapManager
                 $sortOrder
             )
         );
+
+        return $this->pdo->lastInsertId();
     }
 
     public function deleteGroup($groupId)
@@ -494,6 +506,16 @@ class MapManager
         $this->resortMaps();
 
         return true;
+    }
+
+    public function groupExists($groupId)
+    {
+        $statement = $this->pdo->prepare("SELECT id FROM weathermap_groups WHERE id = ?");
+        $statement->execute(array($groupId));
+        if ($statement->rowCount() == 1) {
+            return true;
+        }
+        return false;
     }
 
     public function renameGroup($groupId, $newName)
@@ -550,9 +572,10 @@ class MapManager
      *
      * @param string $mapFilename
      * @param int $groupId
+     * @return null|int The database ID of the new map
      * @throws \Exception
      */
-    public function addMap($mapFilename, $groupId = 0)
+    public function addMap($mapFilename, $groupId = 1)
     {
         chdir($this->configDirectory);
 
@@ -583,7 +606,10 @@ class MapManager
             $statement->execute(array($newMapId));
 
             $this->resortMaps();
+
+            return $newMapId;
         }
+        return null;
     }
 
     public function getMapAuthUsers($mapId)
@@ -711,10 +737,16 @@ class MapManager
 
         if (!in_array('weathermap_data', $tables)) {
             $databaseUpdates[] = "CREATE TABLE IF NOT EXISTS weathermap_data (id INT(11) NOT NULL AUTO_INCREMENT,
-                                rrdfile VARCHAR(190) NOT NULL,data_source_name VARCHAR(19) NOT NULL,
-                                  last_time INT(11) NOT NULL,last_value VARCHAR(190) NOT NULL,
-                                last_calc VARCHAR(190) NOT NULL, sequence INT(11) NOT NULL, local_data_id INT(11) NOT NULL DEFAULT 0, PRIMARY KEY  (id), KEY rrdfile (rrdfile),
-                                  KEY local_data_id (local_data_id), KEY data_source_name (data_source_name) )";
+                                rrdfile VARCHAR(190) NOT NULL,
+                                data_source_name VARCHAR(19) NOT NULL,
+                                last_time INT(11) NOT NULL,
+                                last_value VARCHAR(190) NOT NULL,
+                                last_calc VARCHAR(190) NOT NULL, 
+                                sequence INT(11) NOT NULL, 
+                                local_data_id INT(11) NOT NULL DEFAULT 0, 
+                                last_used DATETIME DEFAULT '1900-01-01 00:00:00',
+                                PRIMARY KEY  (id), KEY rrdfile (rrdfile),
+                                  KEY local_data_id (local_data_id), KEY data_source_name (data_source_name) ) ENGINE=Memory";
         }
 
         return $databaseUpdates;
@@ -787,10 +819,14 @@ class MapManager
                 # if there is existing data without a local_data_id, ditch it
                 $databaseUpdates[] = "DELETE FROM weathermap_data";
             }
+            if (!in_array('last_used', $columns)) {
+                $databaseUpdates[] = "ALTER TABLE weathermap_data ADD last_used DATETIME DEFAULT '1900-01-01 00:00:00' AFTER local_data_id";
+                $databaseUpdates[] = "ALTER TABLE weathermap_data ENGINE=Memory";
+            }
         }
 
         // patch up the sortorder for any maps that don't have one.
-        $databaseUpdates[] = "UPDATE weathermap_maps SET sortorder=id WHERE sortorder IS NULL OR sortorder=0;";
+        $databaseUpdates[] = "UPDATE weathermap_maps SET sortorder = id WHERE sortorder IS null OR sortorder = 0;";
 
         if (!empty($databaseUpdates)) {
             for ($a = 0; $a < count($databaseUpdates); $a++) {

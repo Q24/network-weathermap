@@ -2,11 +2,6 @@
 
 namespace Weathermap\Core;
 
-use Weathermap\Core\MapUtility;
-use Weathermap\Core\Target;
-use Weathermap\Core\MapDataItem;
-use Weathermap\Core\Plugin;
-
 /**
  * Handle everything related to the various plugin types, including finding and loading them, and calling their methods.
  *
@@ -66,7 +61,6 @@ class PluginManager
                 $loaded++;
             }
             $this->plugins[$pluginType][$class] = $newPlugin;
-
         }
         MapUtility::debug("Finished loading $loaded $pluginType plugins.\n");
     }
@@ -91,7 +85,7 @@ class PluginManager
             $fullFilePath = $searchDirectory . DIRECTORY_SEPARATOR . $file;
 
             if (!is_file($fullFilePath)
-                || substr($file,-4,4) != '.php'
+                || substr($file, -4, 4) != '.php'
                 || $file == 'Base.php'
                 || $file == 'Utility.php'
             ) {
@@ -198,5 +192,4 @@ class PluginManager
         MapUtility::debug("Failed to find a plugin\n");
         return false;
     }
-
 }

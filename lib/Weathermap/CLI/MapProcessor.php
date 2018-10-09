@@ -6,7 +6,6 @@ use GetOpt\GetOpt;
 use GetOpt\Option;
 use GetOpt\ArgumentException;
 use Weathermap\Core\Map;
-use Weathermap\Core\MapUtility;
 
 /**
  * A base class for various command-line tools that take in a map config file, process it, and spit out a new one.
@@ -26,7 +25,8 @@ class MapProcessor
         // override this function in subclasses for new options
         // --version and --help are always added
 
-        $this->getOpt->addOptions(array(
+        $this->getOpt->addOptions(
+            array(
             Option::create(null, 'input', GetOpt::REQUIRED_ARGUMENT)
                 ->setDescription('filename to read from. Default weathermap.conf')
                 ->setArgumentName('input_filename')
@@ -35,21 +35,24 @@ class MapProcessor
                 ->setDescription('filename to write to . Default weathermap-new.conf')
                 ->setArgumentName('output_filename')
                 ->setDefaultValue('weathermap-new.conf'),
-        ));
+            )
+        );
     }
 
     private function getOptions()
     {
-        $this->getOpt = new \GetOpt\GetOpt(null, [\GetOpt\GetOpt::SETTING_STRICT_OPERANDS => true]);
+        $this->getOpt = new GetOpt(null, [GetOpt::SETTING_STRICT_OPERANDS => true]);
 
         $this->addOptions();
 
-        $this->getOpt->addOptions(array(
+        $this->getOpt->addOptions(
+            array(
             Option::create(null, 'version', GetOpt::NO_ARGUMENT)
                 ->setDescription('Show version info and quit'),
             Option::create('h', 'help', GetOpt::NO_ARGUMENT)
                 ->setDescription('Show this help and quit'),
-        ));
+            )
+        );
 
         // process arguments and catch user errors
         try {
@@ -88,6 +91,5 @@ class MapProcessor
         $this->map->ReadConfig($this->getOpt->getOption('input_filename'));
         $this->processMap();
         $this->map->WriteConfig($this->getOpt->getOption('output_filename'));
-
     }
 }

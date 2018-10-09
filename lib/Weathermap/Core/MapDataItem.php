@@ -2,8 +2,6 @@
 
 namespace Weathermap\Core;
 
-use Weathermap\Core\MapUtility;
-
 /**
  * Class WeatherMapDataItem - Everything that collects data from DS plugins,
  * uses scales, etc, inherits from here.
@@ -156,8 +154,10 @@ class MapDataItem extends MapItem
     public function updateMaxValues($kilo)
     {
         foreach ($this->getChannelList() as $const) {
-            $this->maxValues[$const] = StringUtility::interpretNumberWithMetricSuffix($this->maxValuesConfigured[$const],
-                $kilo);
+            $this->maxValues[$const] = StringUtility::interpretNumberWithMetricSuffix(
+                $this->maxValuesConfigured[$const],
+                $kilo
+            );
         }
 
         MapUtility::debug(

@@ -24,12 +24,14 @@ class WeatherMapCacti10ManagementPlugin extends WeatherMapCactiManagementPlugin
      */
     public function handleManagementMainScreen($request, $appObject)
     {
-        global $wm_showOldUI;
+        global $wm_showOldUI, $config;
+
+        $weathermapPath = $config['url_path'] . 'plugins/weathermap/';
+        $cactiResourcePath = $weathermapPath . 'cacti-resources/';
 
         $this->cactiHeader();
 
         if ($wm_showOldUI) {
-
             print "This will all be replaced.";
             $this->maplistWarnings();
             $this->maplist();
@@ -57,9 +59,10 @@ class WeatherMapCacti10ManagementPlugin extends WeatherMapCactiManagementPlugin
 
         // get the locale from host app
         $locale = $this->manager->application->getLocale();
-        print '<style>@import "/cacti/plugins/weathermap/cacti-resources/mgmt/main.css";</style>';
+
+        print '<style>@import "' . $cactiResourcePath . 'mgmt/main.css";</style>';
         print "<div id='weathermap-mgmt-root' data-locale='" . $locale . "' data-url='" . $this->makeURL(array("action" => "app_settings")) . "'></div>";
-        print '<script type="text/javascript" src="/cacti/plugins/weathermap/cacti-resources/mgmt/main.js"></script>';
+        print '<script type="text/javascript" src="' . $cactiResourcePath . 'mgmt/main.js"></script>';
 
         $this->cactiFooter();
     }

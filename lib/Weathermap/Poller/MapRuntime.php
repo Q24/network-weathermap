@@ -3,6 +3,7 @@
 namespace Weathermap\Poller;
 
 use Weathermap\Core\MapUtility;
+use Weathermap\Core\StringUtility;
 use Weathermap\Integrations\MapManager;
 use Weathermap\Core\Utility;
 use Weathermap\Core\Map;
@@ -69,8 +70,12 @@ class MapRuntime
 
     public function __toString()
     {
-        return sprintf("Runtime: %s -> %s & %s", $this->mapConfigFileName, $this->htmlOutputFileName,
-            $this->imageOutputFileName);
+        return sprintf(
+            "Runtime: %s -> %s & %s",
+            $this->mapConfigFileName,
+            $this->htmlOutputFileName,
+            $this->imageOutputFileName
+        );
     }
 
     private function preChecks()
@@ -90,7 +95,7 @@ class MapRuntime
 
     private function memoryStamp($name)
     {
-        $this->memory[$name] = Utility::buildMemoryCheckString($name);
+        $this->memory[$name] = StringUtility::formatNumberWithMetricSuffix(memory_get_usage());
     }
 
     private function checkCron()
@@ -115,10 +120,13 @@ class MapRuntime
             return false;
         }
 
-        MapUtility::notice("Map: $this->mapConfigFileName -> $this->htmlOutputFileName & $this->imageOutputFileName\n",
-            true);
+        MapUtility::notice(
+            "Map: $this->mapConfigFileName -> $this->htmlOutputFileName & $this->imageOutputFileName\n",
+            true
+        );
         $this->manager->application->setAppSetting("weathermap_last_started_file", $this->description);
 
+        $this->memory['_limit_'] = $memAllowed = ini_get("memory_limit");
         $this->checkPoint("start");
 
         $map = new Map;
@@ -178,11 +186,13 @@ class MapRuntime
 
         // if an htmloutputfile was configured, output the HTML there too but using the configured imageuri and imagefilename
         if ($map->htmloutputfile != "") {
+            MapUtility::debug("Writing additional HTML file to " . $map->htmloutputfile);
             $this->writeHTMLFile($map->htmloutputfile, $map, $this->mapConfig->filehash);
         }
 
         if ($map->imageoutputfile != "" && $map->imageoutputfile != "weathermap.png" && file_exists($this->imageOutputFileName)) {
             // copy the existing image file to the configured location too
+            MapUtility::debug("Writing additional Image file to " . $map->imageoutputfile);
             @copy($this->imageOutputFileName, $map->imageoutputfile);
         }
 

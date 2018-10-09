@@ -18,13 +18,13 @@ class Runner
     /** @var GetOpt $getOpt */
     private $getOpt;
     private $defines = array();
-    private $options_output = array();
+    private $optionsOutput = array();
 
     /** @var Map $map */
     private $map;
-    private $configfile;
-    private $imagefile = "";
-    private $htmlfile = "";
+    private $configFile;
+    private $imageFile = "";
+    private $htmlFile = "";
 
     public function run()
     {
@@ -78,7 +78,8 @@ class Runner
      */
     private function addMainOptions($opt)
     {
-        $opt->addOptions(array(
+        $opt->addOptions(
+            array(
                 Option::create(null, 'version', GetOpt::NO_ARGUMENT)
                     ->setDescription('Show version info and quit'),
                 Option::create('h', 'help', GetOpt::NO_ARGUMENT)
@@ -108,7 +109,8 @@ class Runner
      */
     private function addExpertOptions($opt)
     {
-        $opt->addOptions(array(
+        $opt->addOptions(
+            array(
             Option::create(null, 'define', GetOpt::MULTIPLE_ARGUMENT)
                 ->setArgumentName('name=value')
                 ->setDescription('Define internal variables (equivalent to global SET in config file)'),
@@ -125,7 +127,8 @@ class Runner
             Option::create(null, 'no-warn', GetOpt::REQUIRED_ARGUMENT)
                 ->setDescription('suppress warnings with listed errorcodes (comma-separated)')
                 ->setArgumentName('WMxxx_errorcode'),
-        ));
+            )
+        );
     }
 
     /**
@@ -133,7 +136,8 @@ class Runner
      */
     private function addDevOptions($opt)
     {
-        $opt->addOptions(array(
+        $opt->addOptions(
+            array(
             Option::create(null, 'randomdata', GetOpt::NO_ARGUMENT)
                 ->setDescription('skip the data-reading process, generate random data'),
             Option::create(null, 'uberdebug', GetOpt::NO_ARGUMENT)
@@ -147,38 +151,39 @@ class Runner
             Option::create(null, 'dump-json', GetOpt::REQUIRED_ARGUMENT)
                 ->setArgumentName('filename')
                 ->setDescription('(development) dump JSON config to a new file'),
-        ));
+            )
+        );
     }
 
     private function translateRuntimeOptionsToSettings()
     {
         global $weathermap_error_suppress;
 
-        $this->configfile = $this->getOpt->getOption('config');
-        $this->htmlfile = $this->getOpt->getOption('htmloutput');
-        $this->imagefile = $this->getOpt->getOption('output');
-        $this->options_output['imageuri'] = $this->getOpt->getOption('image-uri');
+        $this->configFile = $this->getOpt->getOption('config');
+        $this->htmlFile = $this->getOpt->getOption('htmloutput');
+        $this->imageFile = $this->getOpt->getOption('output');
+        $this->optionsOutput['imageuri'] = $this->getOpt->getOption('image-uri');
 
         if ($this->getOpt->getOption('bulge') === 1) {
-            $this->options_output['widthmod'] = true;
+            $this->optionsOutput['widthmod'] = true;
         }
         if ($this->getOpt->getOption('sizedebug') === 1) {
-            $this->options_output['sizedebug'] = true;
+            $this->optionsOutput['sizedebug'] = true;
         }
         if ($this->getOpt->getOption('no-data') === 1) {
-            $this->options_output['sizedebug'] = true;
+            $this->optionsOutput['sizedebug'] = true;
         }
 
         if ($this->getOpt->getOption('no-warn') != '') {
             // allow disabling of warnings from the command-line, too (mainly for the rrdtool warning)
-            $suppress_warnings = explode(",", $this->getOpt->getOption('no-warn'));
-            foreach ($suppress_warnings as $s) {
+            $suppressedWarnings = explode(",", $this->getOpt->getOption('no-warn'));
+            foreach ($suppressedWarnings as $s) {
                 $weathermap_error_suppress[] = strtoupper($s);
             }
         }
 
-        $define_array = $this->getOpt->getOption('define');
-        foreach ($define_array as $define) {
+        $defineList = $this->getOpt->getOption('define');
+        foreach ($defineList as $define) {
             preg_match("/^([^=]+)=(.*)\s*$/", $define, $matches);
             if (isset($matches[2])) {
                 $varname = $matches[1];
@@ -198,16 +203,16 @@ class Runner
         global $weathermap_debugging;
 
         if ($this->getOpt->getOption('debug') === 1) {
-            $this->options_output['debugging'] = true;
+            $this->optionsOutput['debugging'] = true;
         }
         if ($this->getOpt->getOption('uberdebug') === 1) {
-            $this->options_output['debugging'] = true;
+            $this->optionsOutput['debugging'] = true;
             // allow ALL trace messages (normally we block some of the chatty ones)
             $weathermap_debug_suppress = array();
         }
 
         // set this BEFORE we create the map object, so we get the debug output from Reset(), as well
-        if (isset($this->options_output['debugging']) && $this->options_output['debugging']) {
+        if (isset($this->optionsOutput['debugging']) && $this->optionsOutput['debugging']) {
             $weathermap_debugging = true;
             // enable assertion handling
             assert_options(ASSERT_ACTIVE, 1);
@@ -218,7 +223,7 @@ class Runner
             assert_options(ASSERT_CALLBACK, 'my_assert_handler');
 
             MapUtility::debug("------------------------------------\n");
-            MapUtility::debug("Starting PHP-Weathermap run, with config: $this->configfile\n");
+            MapUtility::debug("Starting PHP-Weathermap run, with config: $this->configFile\n");
             MapUtility::debug("------------------------------------\n");
         }
     }
@@ -226,20 +231,20 @@ class Runner
     private function makeMap()
     {
         // now stuff in all the others, that we got from getopts
-        foreach ($this->options_output as $key => $value) {
+        foreach ($this->optionsOutput as $key => $value) {
             $this->map->$key = $value;
         }
 
-        if ($this->map->readConfig($this->configfile)) {
+        if ($this->map->readConfig($this->configFile)) {
             $this->mapFileSettings();
             $this->mapSettingsPostConfig();
             $this->getMapData();
 
             // TODO: it would be good if this used MapRuntime (would need a stub ApplicationInterface)
 
-            if ($this->imagefile != '') {
-                $this->map->drawMap($this->imagefile);
-                $this->map->imagefile = $this->imagefile;
+            if ($this->imageFile != '') {
+                $this->map->drawMap($this->imageFile);
+                $this->map->imagefile = $this->imageFile;
             }
 
             $this->outputHTML();
@@ -252,8 +257,8 @@ class Runner
     private function mapFileSettings()
     {
         // allow command-lines to override the config file, but provide a default if neither are present
-        $this->imagefile = $this->imagefile ?: $this->map->imageoutputfile ?: "weathermap.png";
-        $this->htmlfile = $this->htmlfile ?: $this->map->htmloutputfile ?: "";
+        $this->imageFile = $this->imageFile ?: $this->map->imageoutputfile ?: "weathermap.png";
+        $this->htmlFile = $this->htmlFile ?: $this->map->htmloutputfile ?: "";
     }
 
     private function mapSettingsPostConfig()
@@ -264,7 +269,7 @@ class Runner
         }
 
         // now stuff in all the others, that we got from getopts
-        foreach ($this->options_output as $key => $value) {
+        foreach ($this->optionsOutput as $key => $value) {
             $this->map->addHint($key, $value);
         }
     }
@@ -285,29 +290,41 @@ class Runner
 
     private function outputHTML()
     {
-        if ($this->htmlfile != '') {
-            MapUtility::debug("Writing HTML to $this->htmlfile\n");
+        if ($this->htmlFile != '') {
+            MapUtility::debug("Writing HTML to $this->htmlFile\n");
 
-            $fd = fopen($this->htmlfile, 'w');
-            fwrite($fd,
-                '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>');
+            $fd = fopen($this->htmlFile, 'w');
+            fwrite(
+                $fd,
+                '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head>'
+            );
             if ($this->map->htmlstylesheet != '') {
                 fwrite($fd, '<link rel="stylesheet" type="text/css" href="' . $this->map->htmlstylesheet . '" />');
             }
-            fwrite($fd,
-                '<meta http-equiv="refresh" content="300" /><title>' . $this->map->processString($this->map->title,
-                    $this->map) . '</title></head><body>');
+            fwrite(
+                $fd,
+                '<meta http-equiv="refresh" content="300" /><title>' . $this->map->processString(
+                    $this->map->title,
+                    $this->map
+                ) . '</title></head><body>'
+            );
 
             if ($this->map->htmlstyle == "overlib") {
-                fwrite($fd,
-                    "<div id=\"overDiv\" style=\"position:absolute; visibility:hidden; z-index:1000;\"></div>\n");
-                fwrite($fd,
-                    "<script type=\"text/javascript\" src=\"overlib.js\"><!-- overLIB (c) Erik Bosrup --></script> \n");
+                fwrite(
+                    $fd,
+                    "<div id=\"overDiv\" style=\"position:absolute; visibility:hidden; z-index:1000;\"></div>\n"
+                );
+                fwrite(
+                    $fd,
+                    "<script type=\"text/javascript\" src=\"overlib.js\"><!-- overLIB (c) Erik Bosrup --></script> \n"
+                );
             }
 
             fwrite($fd, $this->map->makeHTML());
-            fwrite($fd,
-                '<hr /><span id="byline">Network Map created with <a href="http://www.network-weathermap.com/?vs=' . WEATHERMAP_VERSION . '">PHP Network Weathermap v' . WEATHERMAP_VERSION . '</a></span></body></html>');
+            fwrite(
+                $fd,
+                '<hr /><span id="byline">Network Map created with <a href="http://www.network-weathermap.com/?vs=' . WEATHERMAP_VERSION . '">PHP Network Weathermap v' . WEATHERMAP_VERSION . '</a></span></body></html>'
+            );
             fclose($fd);
         }
     }

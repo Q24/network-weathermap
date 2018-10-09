@@ -50,32 +50,27 @@ class AngledLinkGeometry extends LinkGeometry
             // before the main loop, add in the jump out to the corners
             // if this is the first step, then we need to go from the middle to the outside edge first
             //(the loop may not run, but these corners are required)
-            $index = 0;
-            $tangent = $simple->getPoint($index)->vectorToPoint($simple->getPoint($index + 1));
+
+            $point = $simple->getPoint(0);
+            $nextPoint = $simple->getPoint(1);
+            $tangent = $point->vectorToPoint($nextPoint);
             $normal = $tangent->getNormal();
 
-            $there[] = $simple->getPoint($index)->copy()->addVector($normal, $width);
-            array_unshift($back, $simple->getPoint($index)->copy()->addVector($normal, -$width));
+            $there[] = $point->copy()->addVector($normal, $width);
+            array_unshift($back, $point->copy()->addVector($normal, -$width));
 
             $maxStartingIndex = $simple->pointCount() - 2;
 
             MapUtility::debug("We'll loop through %d steps.", $maxStartingIndex + 1);
 
             for ($index = 0; $index < $maxStartingIndex; $index++) {
-                $point = $simple->getPoint($index);
-                $nextPoint = $simple->getPoint($index + 1);
+                // At the end of the loop, we shuffle things up, and only calculate the nextNext ones here.
                 $nextNextPoint = $simple->getPoint($index + 2);
+                $nextTangent = $nextPoint->vectorToPoint($nextNextPoint);
+                $nextNormal = $nextTangent->getNormal();
 
                 // Get the next two line segments, and figure out the angle between them
                 // (different angles are dealt with differently)
-
-                // TODO - we're actually calculating every tangent and normal twice here.
-                // At the end of the loop, we should shuffle things up, and only calculate the nextNext ones here.
-                $tangent = $point->vectorToPoint($nextPoint);
-                $nextTangent = $nextPoint->vectorToPoint($nextNextPoint);
-
-                $normal = $tangent->getNormal();
-                $nextNormal = $nextTangent->getNormal();
 
                 // if it's a sharp angle, we don't want a really long point on the outside of the bend,
                 // see we'll cap off the outside corner
@@ -157,11 +152,21 @@ class AngledLinkGeometry extends LinkGeometry
                     }
                 }
                 MapUtility::debug("Next step...\n");
+
+                // Now, shuffle all the points, tangents and normals up one position, to save calculating again
+                $point = $nextPoint;
+                $nextPoint = $nextNextPoint;
+                $normal = $nextNormal;
+//                $tangent = $nextTangent;
             }
 
             MapUtility::debug("Arrowhead\n");
-            $arrow = $this->generateArrowhead($this->arrowPoints[$direction], $this->midPoint,
-                $this->linkWidths[$direction], $this->arrowWidths[$direction]);
+            $arrow = $this->generateArrowhead(
+                $this->arrowPoints[$direction],
+                $this->midPoint,
+                $this->linkWidths[$direction],
+                $this->arrowWidths[$direction]
+            );
 
             $outline = array_merge($there, $arrow, $back);
             $this->drawnCurves[$direction] = $outline;

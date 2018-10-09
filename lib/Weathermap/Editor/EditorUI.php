@@ -451,10 +451,10 @@ class EditorUI extends UIBase
         $fontsImageRef = imagecreate(2000, $sampleHeight);
         $keyImageRef = imagecreate(2000, $keyHeight);
 
-        $white = imagecolorallocate($fontsImageRef, 255, 255, 255);
+//        $white = imagecolorallocate($fontsImageRef, 255, 255, 255);
         $black = imagecolorallocate($fontsImageRef, 0, 0, 0);
 
-        $whitekey = imagecolorallocate($keyImageRef, 255, 255, 255);
+//        $whitekey = imagecolorallocate($keyImageRef, 255, 255, 255);
         $blackkey = imagecolorallocate($keyImageRef, 0, 0, 0);
 
         $fonts = $map->fonts->getList();
@@ -878,37 +878,6 @@ class EditorUI extends UIBase
         }
     }
 
-    /**
-     * Attempt to load Cacti's config file - we'll need this to do integration like
-     * the target picker.
-     *
-     * @param string $cactiBaseDirectory
-     * @return bool did it work?
-     */
-    public function loadCacti($cactiBaseDirectory)
-    {
-        global $cacti_url;
-
-        $this->foundHost = false;
-        // check if the goalposts have moved
-        if (is_dir($cactiBaseDirectory) && file_exists($cactiBaseDirectory . "/include/global.php")) {
-            // include the cacti-config, so we know about the database
-            include_once $cactiBaseDirectory . "/include/global.php";
-            $config['base_url'] = $cacti_url;
-            $cactiFound = true;
-        } elseif (is_dir($cactiBaseDirectory) && file_exists($cactiBaseDirectory . "/include/config.php")) {
-            // include the cacti-config, so we know about the database
-            include_once $cactiBaseDirectory . "/include/config.php";
-
-            $config['base_url'] = $cacti_url;
-            $cactiFound = true;
-        } else {
-            $cactiFound = false;
-        }
-
-        $this->foundHost = $cactiFound;
-        return $this->foundHost;
-    }
 
     public function extractSettingsCookie($cookies)
     {
@@ -968,7 +937,6 @@ class EditorUI extends UIBase
                     // put it back into the request, so that the validation doesn't fail
                     $request['mapname'] = $mapFileName;
                 }
-
             }
 
             // If there's something funny with the config filename, just stop.
@@ -990,9 +958,7 @@ class EditorUI extends UIBase
         if ($this->validateRequest($action, $request)) {
             $editor = new Editor();
 
-            if ($this->isEmbedded()) {
-
-            }
+            // if ($this->isEmbedded()) {}
 
             if (!isset($this->commands[$action]['late_load'])) {
                 $editor->loadConfig($this->mapFileName);
@@ -1153,20 +1119,20 @@ class EditorUI extends UIBase
 
         // draw a map to throw away, just to get the imagemap updated
         $editor->map->DrawMap('null');
-        $real_html_style = $editor->map->htmlstyle;
+        $realHTMLStyle = $editor->map->htmlstyle;
         $editor->map->htmlstyle = 'editor';
         $editor->map->calculateImageMap();
 
         $tpl->set("imagemap", $editor->map->generateSortedImagemap("weathermap_imap"));
         $tpl->set("map_json", $editor->map->asJS());
 
-        $editor_settings = array(
+        $editorSettings = array(
             'via_overlay' => $this->useOverlayVIA ? "1" : "0",
             'rel_overlay' => $this->useOverlayRelative ? "1" : "0",
             'grid_snap' => $this->gridSnapValue
         );
 
-        $tpl->set("editor_settings", "var editor_settings = " . json_encode($editor_settings) . ";\n");
+        $tpl->set("editor_settings", "var editor_settings = " . json_encode($editorSettings) . ";\n");
 
         $tpl->set("map_width", $editor->map->width);
         $tpl->set("map_height", $editor->map->height);
@@ -1202,7 +1168,7 @@ class EditorUI extends UIBase
             "linkfont" => $editor->map->links['DEFAULT']->bwfont,
             "nodefont" => $editor->map->nodes['DEFAULT']->labelfont,
             "arrowstyle" => $editor->map->links['DEFAULT']->arrowStyle,
-            "htmlstyle" => $real_html_style,
+            "htmlstyle" => $realHTMLStyle,
             "legendfont" => $editor->map->keyfont,
             "map_width" => $editor->map->width,
             "map_height" => $editor->map->height,

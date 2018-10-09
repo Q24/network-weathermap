@@ -22,7 +22,7 @@ class MapFull extends Component {
   }
 
   getMapHtml() {
-    const path = 'output/' + this.props.map.filehash + '.html';
+    const path = this.props.settings.html_url + this.props.map.filehash;
     fetch(path).then(response => {
       return response.text();
     }).then(response => {

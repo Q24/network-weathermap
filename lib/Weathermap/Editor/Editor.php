@@ -5,7 +5,6 @@
 // Released under the GNU Public License
 namespace Weathermap\Editor;
 
-use Weathermap\Core\BoundingBox;
 use Weathermap\Core\Map;
 use Weathermap\Core\MapNode;
 use Weathermap\Core\MapLink;
@@ -13,7 +12,6 @@ use Weathermap\Core\Rectangle;
 use Weathermap\Core\WeathermapInternalFail;
 use Weathermap\Core\Point;
 use Weathermap\Core\MathUtility;
-use Weathermap\Core\MapUtility;
 use Weathermap\Core\Target;
 use Weathermap\Core\StringUtility;
 use Weathermap\UI\UIBase;
@@ -78,7 +76,6 @@ class Editor
         if ($itemType == 'node' && $this->map->nodeExists($itemName)) {
             $node = $this->map->getNode($itemName);
             return $node->getConfig();
-
         }
 
         if ($itemType == 'link' && $this->map->linkExists($itemName)) {
@@ -1080,34 +1077,34 @@ class Editor
         $defaultLink->addNote("my_width", $params['linkdefaultwidth']);
 
 
-        $bwin = $params['linkdefaultbwin'];
-        $bwout = $params['linkdefaultbwout'];
+        $bwIn = $params['linkdefaultbwin'];
+        $bwOut = $params['linkdefaultbwout'];
 
-        $bwin_old = $defaultLink->maxValuesConfigured[IN];
-        $bwout_old = $defaultLink->maxValuesConfigured[OUT];
+        $bwInOld = $defaultLink->maxValuesConfigured[IN];
+        $bwOutOld = $defaultLink->maxValuesConfigured[OUT];
 
         // TODO - there are two methods doing this job in UIBase
-        if (!UIBase::wmeValidateBandwidth($bwout)) {
-            $bwout = $bwout_old;
+        if (!UIBase::wmeValidateBandwidth($bwOut)) {
+            $bwOut = $bwOutOld;
         }
 
-        if (!UIBase::wmeValidateBandwidth($bwin)) {
-            $bwin = $bwin_old;
+        if (!UIBase::wmeValidateBandwidth($bwIn)) {
+            $bwIn = $bwInOld;
         }
 
-        if (($bwin_old != $bwin) || ($bwout_old != $bwout)) {
-            $defaultLink->maxValuesConfigured[IN] = $bwin;
-            $defaultLink->maxValuesConfigured[OUT] = $bwout;
-            $defaultLink->maxValues[IN] = StringUtility::interpretNumberWithMetricSuffix($bwin, $this->map->kilo);
-            $defaultLink->maxValues[OUT] = StringUtility::interpretNumberWithMetricSuffix($bwout, $this->map->kilo);
+        if (($bwInOld != $bwIn) || ($bwOutOld != $bwOut)) {
+            $defaultLink->maxValuesConfigured[IN] = $bwIn;
+            $defaultLink->maxValuesConfigured[OUT] = $bwOut;
+            $defaultLink->maxValues[IN] = StringUtility::interpretNumberWithMetricSuffix($bwIn, $this->map->kilo);
+            $defaultLink->maxValues[OUT] = StringUtility::interpretNumberWithMetricSuffix($bwOut, $this->map->kilo);
         }
 
         foreach ($this->map->links as $link) {
-            if (($link->maxValuesConfigured[IN] == $bwin_old) || ($link->maxValuesConfigured[OUT] == $bwout_old)) {
-                $link->maxValuesConfigured[IN] = $bwin;
-                $link->maxValuesConfigured[OUT] = $bwout;
-                $link->maxValues[IN] = StringUtility::interpretNumberWithMetricSuffix($bwin, $this->map->kilo);
-                $link->maxValues[OUT] = StringUtility::interpretNumberWithMetricSuffix($bwout, $this->map->kilo);
+            if (($link->maxValuesConfigured[IN] == $bwInOld) || ($link->maxValuesConfigured[OUT] == $bwOutOld)) {
+                $link->maxValuesConfigured[IN] = $bwIn;
+                $link->maxValuesConfigured[OUT] = $bwOut;
+                $link->maxValues[IN] = StringUtility::interpretNumberWithMetricSuffix($bwIn, $this->map->kilo);
+                $link->maxValues[OUT] = StringUtility::interpretNumberWithMetricSuffix($bwOut, $this->map->kilo);
             }
         }
     }
@@ -1174,5 +1171,4 @@ class Editor
             }
         }
     }
-
 }

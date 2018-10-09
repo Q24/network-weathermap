@@ -6,7 +6,6 @@ use Weathermap\Core\MapUtility;
 use Weathermap\Integrations\Cacti\CactiApplicationInterface;
 use Weathermap\Integrations\MapManager;
 use Weathermap\Core\Utility;
-use Weathermap\Poller\PollerConfig;
 
 // common code used by the poller, the manual-run from the Cacti UI, and from the command-line manual-run.
 // this is the easiest way to keep it all consistent!
@@ -29,8 +28,8 @@ function runMaps($mydir)
     }
 
     $pollerConfig = new PollerConfig();
-    $pollerConfig->rrdtoolFileName = $manager->application->getAppSetting("path_rrdtool","rrdtool");
-    $pollerConfig->imageFormat = strtolower($manager->application->getAppSetting("weathermap_output_format","png"));
+    $pollerConfig->rrdtoolFileName = $manager->application->getAppSetting("path_rrdtool", "rrdtool");
+    $pollerConfig->imageFormat = strtolower($manager->application->getAppSetting("weathermap_output_format", "png"));
     $pollerConfig->configDirectory = $configDirectory;
     $pollerConfig->outputDirectory = $outputDirectory;
     $pollerConfig->thumbnailSize = $manager->application->getAppSetting("weathermap_thumbsize", "200");
@@ -49,10 +48,10 @@ function runMaps($mydir)
     } else {
         $modeMessage = "Normal logging mode. Turn on DEBUG in Cacti for more information";
     }
-    $quietLogging = $manager->application->getAppSetting("weathermap_quiet_logging",0);
+    $quietLogging = $manager->application->getAppSetting("weathermap_quiet_logging", 0);
     // moved this outside the module_checks, so there should always be something in the logs!
     if ($quietLogging == 0) {
-        MapUtility::notice("Weathermap " . WEATHERMAP_VERSION . " starting - $modeMessage\n", true, "WEATHERMAP");
+        MapUtility::notice("Weathermap " . WEATHERMAP_VERSION . " starting - $modeMessage\n", true);
     }
 
     if (!MapUtility::moduleChecks()) {

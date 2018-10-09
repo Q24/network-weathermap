@@ -7,10 +7,6 @@ namespace Weathermap\Core;
 // http://www.network-weathermap.com/
 // Released under the GNU Public License
 
-use Weathermap\Core\HTMLImagemap;
-use Weathermap\Core\PluginManager;
-use Weathermap\Core\Legend;
-
 /**
  * The top-level Weathermap object. Does way more than it should.
  *
@@ -737,7 +733,7 @@ class Map extends MapBase
             // strip out any Windows line-endings that have gotten in here
             $input = str_replace("\r", '', $input);
             $lines = explode("\n", $input);
-            $filename = '{text insert}';
+//            $filename = '{text insert}';
 
             $reader->readConfigLines($lines);
         } else {
@@ -881,8 +877,13 @@ class Map extends MapBase
                 $prefix = substr($mapItem->myType(), 0, 1);
                 fputs(
                     $fileHandle,
-                    sprintf("%s\t%f\t%f\r\n", $prefix, $mapItem->name, $mapItem->absoluteUsages[IN],
-                        $mapItem->absoluteUsages[OUT])
+                    sprintf(
+                        "%s\t%f\t%f\r\n",
+                        $prefix,
+                        $mapItem->name,
+                        $mapItem->absoluteUsages[IN],
+                        $mapItem->absoluteUsages[OUT]
+                    )
                 );
             }
         }
@@ -1027,7 +1028,6 @@ class Map extends MapBase
 
         MapUtility::warn("Failed to write map image. No function existed for the image format you requested. [WMWARN12]\n");
         return false;
-
     }
 
     /**
@@ -1215,7 +1215,9 @@ class Map extends MapBase
 
         $html = '<div class="weathermapimage" style="margin-left: auto; margin-right: auto; width: ' . $this->width . 'px;" >';
 
-        $image = $this->imageuri ?: $this->imagefile;
+        $image = $this->imageuri != "" ? $this->imageuri : $this->imageoutputfile;
+        MapUtility::debug("makeHTML ImageURI is '$image'");
+//        MapUtility::debug("makeHTML ImageURI imagefile is '$this->imageoutputfile'");
 
         $html .= sprintf(
             '<img id="wmapimage" src="%s" width="%d" height="%d" border="0" usemap="#%s" />',
@@ -1253,34 +1255,51 @@ class Map extends MapBase
             $key = $mapItem->getOverlibDataKey();
 
             if ($this->htmlstyle == 'overlib' && $key != '' && count($dirs) > 0) {
-
                 list($midX, $midY) = $mapItem->getOverlibCentre();
 
-                list($left, $above, $imageExtraHTML) = $this->buildOverlibPositioning($mapItem, $midX, $mapCentreX,
-                    $midY, $mapCentreY);
+                list($left, $above, $imageExtraHTML) = $this->buildOverlibPositioning(
+                    $mapItem,
+                    $midX,
+                    $mapCentreX,
+                    $midY,
+                    $mapCentreY
+                );
 
-                // TODO - does this even work for IN vs OUT OVERLIB?? (seems to just overwrite one with other)
                 foreach ($dirs as $dir) {
                     $caption = ($mapItem->overlibcaption[$dir] != '' ? $mapItem->overlibcaption[$dir] : $mapItem->name);
                     $caption = $this->processString($caption, $mapItem);
 
-                    $overlibhtml = $this->buildOverlibHTML($mapItem, $dir, $imageExtraHTML, $left, $above,
-                        $caption);
+                    $overlibhtml = $this->buildOverlibHTML(
+                        $mapItem,
+                        $dir,
+                        $imageExtraHTML,
+                        $left,
+                        $above,
+                        $caption
+                    );
 
+                    // This needs to only modify the areas for the correct dir
                     foreach ($mapItem->imagemapAreas as $area) {
-                        $area->extrahtml = $overlibhtml;
+                        if (array_key_exists('direction', $area->info) and $area->info['direction'] == $dir) {
+                            $area->extrahtml = $overlibhtml;
+                        }
+
+                        if (!array_key_exists('direction', $area->info)) {
+                            MapUtility::debug("$area has no direction, for $mapItem");
+                        }
                     }
                 }
             } // overlib?
 
             // now look at infourls
-            // TODO - same here overwrites one with other
             // don't use infourl in editor (we add our own click handler to edit link)
             if ($this->htmlstyle != 'editor') {
                 foreach ($dirs as $dir) {
                     if ($mapItem->infourl[$dir] != '') {
                         foreach ($mapItem->imagemapAreas as $area) {
-                            $area->href = $this->processString($mapItem->infourl[$dir], $mapItem);
+                            if (array_key_exists('direction', $area->info) and $area->info['direction'] == $dir) {
+                                $area->href = $this->processString($mapItem->infourl[$dir], $mapItem);
+                            }
                         }
                     }
                 }
@@ -1369,6 +1388,13 @@ class Map extends MapBase
         $allLayers = array_keys($this->seenZLayers);
         rsort($allLayers);
 
+        $skipNoLinks = true;
+        // In the editor, we need everything to be clickable
+        if ($this->context == 'editor') {
+            $skipNoLinks = false;
+        }
+        MapUtility::debug("skipNoLinks is $skipNoLinks, context is $this->context\n");
+
         MapUtility::debug("Starting to dump imagemap in reverse Z-order...\n");
         foreach ($allLayers as $z) {
             MapUtility::debug("Writing HTML for layer $z\n");
@@ -1382,26 +1408,10 @@ class Map extends MapBase
 
                     // TODO: This is for timestamp and title ONLY - they could be just added like the others once they are objects
                     foreach ($this->imagemapAreas as $areaname) {
-                        // skip the linkless areas if we are in the editor - they're redundant
-                        $html .= $this->imap->exactHTML(
-                            $areaname,
-                            ($this->context != 'editor')
-                        );
-                        $html .= "\n";
-                    }
-
-                    // TODO: Same for Legends - add them to the zItems
-//                    foreach ($this->scales as $it) {
-//                        foreach ($it->getImagemapAreas() as $area) {
-//                            MapUtility::debug("$area\n");
-//                            $html .= "\t" . $area->asHTML();
-//                            $html .= "\n";
-//                        }
+                        $html .= $this->imap->exactHTML($areaname, $skipNoLinks);
 //                        $html .= "\n";
-//                    }
-
+                    }
                 }
-
 
                 // we reverse the array for each zlayer so that the imagemap order
                 // will match up with the draw order (last drawn should be first hit)
@@ -1410,17 +1420,13 @@ class Map extends MapBase
                     if (!$it->isTemplate()) {
                         foreach ($it->getImagemapAreas() as $area) {
                             MapUtility::debug("$area\n");
-                            // skip the linkless areas if we are in the editor - they're redundant
-                            $html .= "\t" . $area->asHTML();
-                            $html .= "\n";
-                            $html .= "<!-- end of area $area -->";
+                            if (!$skipNoLinks || ($skipNoLinks && $area->hasLinks())) {
+                                $html .= "\t" . $area->asHTML() . "\n";
+                            }
                         }
-                        $html .= "<!-- end of item $it -->";
-                        $html .= "\n";
+//                        $html .= "\n";
                     }
                 }
-
-                $html .= "<!-- end of $z -->";
             }
         }
 
@@ -1876,8 +1882,6 @@ class Map extends MapBase
                 $this->usedImages [] = $node->iconfile;
             }
         }
-
     }
-
 }
 // vim:ts=4:sw=4:

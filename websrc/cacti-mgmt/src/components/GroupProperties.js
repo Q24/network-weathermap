@@ -7,8 +7,8 @@ import {connect} from "react-redux";
 
 class GroupProperties extends Component {
 
-    constructor() {
-        super();
+    constructor(props) {
+        super(props);
 
         this.removeGroup = this.removeGroup.bind(this);
     }
@@ -24,20 +24,27 @@ class GroupProperties extends Component {
     render() {
 
         const groupId = this.props.match.params.id;
-        return <div className='wm-group-properties-container wm-popup'>
-            <h3>Group Properties for group #{groupId}</h3>
+        const group = this.props.groups[groupId];
 
-            <p>Name: <input value='name here'/></p>
+        if (group) {
 
-            <p>Group-level map-SET values</p>
-            <p>(Maybe group-level access?)</p>
+            return <div className='wm-group-properties-container wm-popup'>
+                <h3>Group Properties for group #{groupId} "{group.name}"</h3>
 
-            <SetEditor scope="group" id={groupId}/>
-            <AccessEditor/>
+                <p>Name: <input value={group.name}/></p>
 
-            <button onClick={this.removeGroup}><FormattedMessage id="remove_group" defaultMessage="Remove group"/></button>
+                <p>Group-level map-SET values</p>
+                <p>(Maybe group-level access?)</p>
 
-        </div>
+                <SetEditor scope="group" id={groupId}/>
+                <AccessEditor/>
+                {groupId !== 1 &&
+                <button onClick={this.removeGroup}><FormattedMessage id="remove_group" defaultMessage="Remove group"/>
+                </button>}
+            </div>
+        }
+
+        return <b>No group data...</b>;
     }
 }
 
@@ -51,4 +58,4 @@ const mapDispatchToProps = dispatch => ({
     }
 });
 
-export default connect(mapStateToProps,mapDispatchToProps)(GroupProperties);
+export default connect(mapStateToProps, mapDispatchToProps)(GroupProperties);

@@ -2,8 +2,6 @@
 
 namespace Weathermap\Core;
 
-use Weathermap\Core\MapScale;
-
 /**
  * The in-map display of a scale
  *
@@ -618,5 +616,4 @@ class Legend extends MapItem
     {
         return false;
     }
-
 }

@@ -91,7 +91,11 @@ If you aren't intended to do any development, run the tests, or contribute patch
 
 ### Known Issues
 
-* Weathermap management only shows after the *second* click on the Weathermap menu option?
+* Weathermap management only shows after the *second* click on the Weathermap menu option? Something to do with relative URLs and Cacti's partial loading
+
+* Bower is deprecated. Need to move to using npm directly
+
+* Judging from the memory logging, there's a memory leak (300-500KB per map).
 
 ### Longer-term WIP:
 
@@ -154,7 +158,7 @@ See the docs sub-directory for full HTML documentation, FAQ and example config.
 
 See CHANGES for the most recent updates, listed by version.
 
-See COPYING for the license under which php-weathermap is released.
+See LICENSE for the license under which php-weathermap is released.
 
 There is much more information, tutorials and updates available at:
     http://www.network-weathermap.com/

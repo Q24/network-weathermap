@@ -14,6 +14,23 @@ class HTMLImagemapArea
     public $alt;
     public $z;
     public $extrahtml;
+    public $info;
+
+    public function __construct()
+    {
+        $this->info = array();
+        $this->href = "";
+        $this->extrahtml = "";
+    }
+
+    public function hasLinks()
+    {
+        if (($this->href != '') || ($this->extrahtml != '')) {
+            return true;
+        }
+
+        return false;
+    }
 
     protected function commonHTML()
     {

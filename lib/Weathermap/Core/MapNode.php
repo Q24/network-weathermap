@@ -7,8 +7,6 @@
 
 namespace Weathermap\Core;
 
-use Weathermap\Core\ImageUtility;
-
 /**
  * A single node on a map. Handles drawing, creation and generating config for getConfig()
  *
@@ -202,15 +200,15 @@ class MapNode extends MapDataItem
         // if a target is specified, and you haven't forced no background, then the background will
         // come from the SCALE in USESCALE
         if (!empty($this->targets) && $this->usescale != 'none') {
-            $percentValue = 0;
+//            $percentValue = 0;
 
             if ($this->scalevar == 'in') {
-                $percentValue = $this->percentUsages[IN];
+//                $percentValue = $this->percentUsages[IN];
                 $labelColour = $this->colours[IN];
             }
 
             if ($this->scalevar == 'out') {
-                $percentValue = $this->percentUsages[OUT];
+//                $percentValue = $this->percentUsages[OUT];
                 $labelColour = $this->colours[OUT];
             }
         } elseif (!$this->labelbgcolour->isNone()) {
@@ -388,6 +386,8 @@ class MapNode extends MapDataItem
         foreach ($this->boundingboxes as $bbox) {
             $areaName = 'NODE:N' . $this->id . ':' . $index;
             $newArea = new HTMLImagemapAreaRectangle(array($bbox), $areaName, '');
+            // it doesn't really matter which, but it needs to have SOME direction
+            $newArea->info['direction'] = IN;
             MapUtility::debug('Adding imagemap area [' . join(',', $bbox) . "] => $newArea \n");
             $this->imagemapAreas[] = $newArea;
             $index++;
@@ -939,11 +939,11 @@ class MapNode extends MapDataItem
         }
 
         if ($this->iconscaletype == 'percent') {
-            list($iconColour, $junk, $junk) =
+            list($iconColour) =
                 $map->scales[$this->useiconscale]->colourFromValue($percentValue, $this->name);
         } else {
             // use the absolute value if we aren't doing percentage scales.
-            list($iconColour, $junk, $junk) =
+            list($iconColour) =
                 $map->scales[$this->useiconscale]->colourFromValue($absoluteValue, $this->name, false);
         }
         return $iconColour;

@@ -6,8 +6,6 @@
 
 namespace Weathermap\Core;
 
-use Weathermap\Core\Point;
-
 /**
  * A single link on a map. Handles drawing, creation and generating config for getConfig()
  *
@@ -33,7 +31,7 @@ class MapLink extends MapDataItem
     public $linkStyle;
     public $labelStyle;
     public $labelBoxStyle;
-    public $selected; //TODO - can a link even BE selected?
+//    public $selected; //TODO - can a link even BE selected?
     public $viaList = array();
     public $viaStyle;
     public $commentStyle;
@@ -302,6 +300,7 @@ class MapLink extends MapDataItem
             $polyPoints = $this->geometry->getDrawnPolygon($direction);
 
             $newArea = new HTMLImagemapAreaPolygon(array($polyPoints), $areaName, '');
+            $newArea->info['direction'] = $direction;
             MapUtility::debug("Adding Poly imagemap for %s\n", $areaName);
 
             $this->imagemapAreas[] = $newArea;
@@ -366,13 +365,22 @@ class MapLink extends MapDataItem
         return $out;
     }
 
-    private function drawLabelRotated($imageRef, $centre, $angle, $text, $padding, $direction)
+    /**
+     * @param $imageRef
+     * @param Point $centre
+     * @param float $degreesAngle
+     * @param string $text
+     * @param float $padding
+     * @param int $direction
+     * @throws \Exception
+     */
+    private function drawLabelRotated($imageRef, $centre, $degreesAngle, $text, $padding, $direction)
     {
         $fontObject = $this->owner->fonts->getFont($this->bwfont);
         list($strWidth, $strHeight) = $fontObject->calculateImageStringSize($text);
 
-        $angle = $this->normaliseAngle($angle);
-        $radianAngle = -deg2rad($angle);
+        $degreesAngle = $this->normaliseAngle($degreesAngle);
+        $radianAngle = -deg2rad($degreesAngle);
 
         $extra = 3;
 
@@ -382,18 +390,14 @@ class MapLink extends MapDataItem
         $maxX = $centre->x + ($strWidth / 2) + $padding + $extra;
         $maxY = $centre->y + ($strHeight / 2) + $padding + $extra;
 
+
         // a box. the last point is the start point for the text.
         $points = array(
-            $minX,
-            $minY,
-            $minX,
-            $maxY,
-            $maxX,
-            $maxY,
-            $maxX,
-            $minY,
-            $centre->x - $strWidth / 2,
-            $centre->y + $strHeight / 2 + 1
+            $minX, $minY,
+            $minX, $maxY,
+            $maxX, $maxY,
+            $maxX, $minY,
+            $centre->x - $strWidth / 2, $centre->y + $strHeight / 2 + 1
         );
 
         if ($radianAngle != 0) {
@@ -417,7 +421,7 @@ class MapLink extends MapDataItem
             $textY,
             $text,
             $this->bwfontcolour->gdallocate($imageRef),
-            $angle
+            $degreesAngle
         );
 
         // ------
@@ -425,7 +429,7 @@ class MapLink extends MapDataItem
         $areaName = 'LINK:L' . $this->id . ':' . ($direction + 2);
 
         // the rectangle is about half the size in the HTML, and easier to optimise/detect in the browser
-        if (($angle % 90) == 0) {
+        if (($degreesAngle % 90) == 0) {
             // We optimise for 0, 90, 180, 270 degrees - find the rectangle from the rotated points
             $rectanglePoints = array();
             $rectanglePoints[] = min($points[0], $points[2]);
@@ -434,8 +438,10 @@ class MapLink extends MapDataItem
             $rectanglePoints[] = max($points[1], $points[3]);
             $newArea = new HTMLImagemapAreaRectangle(array($rectanglePoints), $areaName, '');
             MapUtility::debug("Adding Rectangle imagemap for $areaName\n");
+            $newArea->info['direction'] = $direction;
         } else {
             $newArea = new HTMLImagemapAreaPolygon(array($points), $areaName, '');
+            $newArea->info['direction'] = $direction;
             MapUtility::debug("Adding Poly imagemap for $areaName\n");
         }
         // Make a note that we added this area
@@ -467,7 +473,7 @@ class MapLink extends MapDataItem
             array('duplex', 'DUPLEX', self::CONFIG_TYPE_LITERAL),
             array('commentStyle', 'COMMENTSTYLE', self::CONFIG_TYPE_LITERAL),
             array('labelBoxStyle', 'BWSTYLE', self::CONFIG_TYPE_LITERAL),
-            //		array('usescale','USESCALE',self::CONFIG_TYPE_LITERAL),
+            //      array('usescale','USESCALE',self::CONFIG_TYPE_LITERAL),
 
             array('bwfont', 'BWFONT', self::CONFIG_TYPE_LITERAL),
             array('commentfont', 'COMMENTFONT', self::CONFIG_TYPE_LITERAL),

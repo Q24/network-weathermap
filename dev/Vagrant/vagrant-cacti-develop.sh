@@ -9,7 +9,7 @@
 # Perhaps tell apt that we're non interactive?
 export DEBIAN_FRONTEND=noninteractive
 
-
+# Use the sample file as default values
 . /vagrant/settings.sh-sample
 
 # Get the common settings (CACTI_VERSION etc)
@@ -27,8 +27,9 @@ apt-get -y install dos2unix
 echo "Setting system locale"
 cp /vagrant/locale /etc/default/locale
 dos2unix -q /etc/default/locale
-locale-gen en_US.UTF-8
-timedatectl set-timezone ${TIMEZONE}
+. /vagrant/locale
+locale-gen $LANG
+timedatectl set-timezone $TIMEZONE
 
 add-apt-repository ppa:ondrej/php
 apt-get update -y
@@ -88,7 +89,7 @@ cd /tmp
 curl -sS https://getcomposer.org/installer -o composer-setup.php
 php composer-setup.php --install-dir=/usr/local/bin --filename=composer
 
-echo "Starting installation for Cacti ${CACTI_VERSION}"
+echo "Starting installation for Cacti version '${CACTI_VERSION}'"
 
 mkdir ${CACTI_HOME}
 if [ ! -f /vagrant/cacti-${CACTI_VERSION}.tar.gz ]; then
@@ -159,7 +160,7 @@ else
   mysql -uroot cacti < ${CACTI_HOME}/cacti.sql
 fi
 
-
+# if WEATHERMAP_VERSION is a version number, this will look for locally-made release files (for pre-release tests)
 if [ -f /network-weathermap/releases/php-weathermap-${WEATHERMAP_VERSION}.zip ]; then
   echo "Unzipping weathermap from local release zip"
   unzip /network-weathermap/releases/php-weathermap-${WEATHERMAP_VERSION}.zip -d ${CACTI_HOME}plugins/
@@ -196,8 +197,11 @@ if [ "${WEATHERMAP_VERSION}" == "mount" ]; then
   su -c "cd ${CACTI_PLUGINS}/weathermap && composer install" - vagrant
 fi
 
-echo "Adding cron job"
-echo "*/5 * * * * vagrant /usr/bin/php ${CACTI_HOME}/poller.php > ${CACTI_HOME}/last-cacti-poll.txt 2>&1" > /etc/cron.d/cacti
+# cronjob added but disabled (to enable testing of install process)
+# use post-install.sh to override this if required
+echo "Adding cron job (disabled)"
+echo "# */5 * * * * vagrant /usr/bin/php ${CACTI_HOME}/poller.php > ${CACTI_HOME}/last-cacti-poll.txt 2>&1" > /etc/cron.d/cacti
+
 # create the 'last poll' log file
 touch ${CACTI_HOME}/last-cacti-poll.txt
 chown vagrant ${CACTI_HOME}/last-cacti-poll.txt
@@ -229,7 +233,7 @@ if [ "${WITH_SPINE}" == "yes" ]; then
   rm -rf /vagrant/cacti-spine-${CACTI_VERSION}/
 fi
 
-# any local tweaks can be added to post-install.sh (which needs to be marked executable)
+# any local tweaks can be added to post-install.sh
 if [ -x /vagrant/post-install.sh ]; then
-    /vagrant/post-install.sh
+    . /vagrant/post-install.sh
 fi

@@ -36,6 +36,7 @@ class WeatherMapCactiUserPlugin extends UIBase
         ),
         'viewthumb48' => array('handler' => 'handleLittleThumb', 'args' => array(array("id", "maphash"))),
         'viewimage' => array('handler' => 'handleImage', 'args' => array(array("id", "maphash"))),
+        'viewhtml' => array('handler' => 'handleHTML', 'args' => array(array("id", "maphash"))),
 
         'viewmap' => array(
             'handler' => 'handleViewMap',
@@ -90,7 +91,7 @@ class WeatherMapCactiUserPlugin extends UIBase
         }
 
         if ($this->validateRequest($action, $request)) {
-            $result = $this->dispatchRequest($action, $request, null);
+            $this->dispatchRequest($action, $request, null);
         } else {
             print "INPUT VALIDATION FAIL";
         }
@@ -168,6 +169,7 @@ class WeatherMapCactiUserPlugin extends UIBase
             'map_selector' => $trueFalseLookup[$showMapSelector],
             'thumb_url' => $this->makeURL(array("action" => "viewthumb")) . "&id=",
             'image_url' => $this->makeURL(array("action" => "viewimage")) . "&id=",
+            'html_url' => $this->makeURL(array("action" => "viewhtml")) . "&id=",
             'editor_url' => $this->editorURL,
             'maps_url' => $this->makeURL(array("action" => "maplist")),
             'docs_url' => 'docs/index.html',
@@ -197,6 +199,11 @@ class WeatherMapCactiUserPlugin extends UIBase
         $this->outputMapImage($request['id'], ".");
     }
 
+    public function handleHTML($request, $appObject)
+    {
+        $this->outputMapHTML($request['id']);
+    }
+
     protected function isWeathermapAdmin()
     {
         global $user_auth_realm_filenames;
@@ -220,12 +227,14 @@ class WeatherMapCactiUserPlugin extends UIBase
 
     public function handleDefaultView($request, $appObject)
     {
-        global $wm_showOldUI;
+        global $wm_showOldUI, $config;
+
+        $weathermapPath = $config['url_path'] . 'plugins/weathermap/';
+        $cactiResourcePath = $weathermapPath . 'cacti-resources/';
 
         $this->cactiHeader();
 
         if ($wm_showOldUI) {
-
             print "This will all be replaced.";
 
             $pageStyle = $this->manager->application->getAppSetting("weathermap_pagestyle", 0);
@@ -256,11 +265,11 @@ class WeatherMapCactiUserPlugin extends UIBase
         // get the locale from host app
         $locale = $this->manager->application->getLocale();
 
-        print '<style>@import "cacti-resources/user/main.css"</style>';
-        print '<script type="text/javascript" src="overlib.js"></script>';
+        print '<style>@import "' . $cactiResourcePath . 'user/main.css"</style>';
+        print '<script type="text/javascript" src="' . $weathermapPath . 'overlib.js"></script>';
 
         print "<div id='weathermap-user-root' data-locale='" . $locale . "' data-url='" . $this->makeURL(array("action" => "settings")) . "'></div>";
-        print '<script type="text/javascript" src="cacti-resources/user/main.js"></script>';
+        print '<script type="text/javascript" src="' . $cactiResourcePath . 'user/main.js"></script>';
 
         print "<hr />";
 
@@ -568,6 +577,33 @@ class WeatherMapCactiUserPlugin extends UIBase
         $pageTitle = __n("Network Weathermap", "Network Weathermaps", count($mapList));
 
         $this->outputMapViewHeader($pageTitle, $cycle, $limitToGroup);
+    }
+
+    /**
+     * @param $filehash
+     */
+    private function outputMapHTML($filehash)
+    {
+        $mapId = $this->manager->translateFileHash($filehash);
+        $userId = $this->manager->application->getCurrentUserId();
+
+        $map = $this->manager->getMapWithAccess($mapId, $userId);
+
+        header('Content-type: text/html');
+        if (null === $map) {
+            // in the management view, a disabled map will fail the query above, so generate *something*
+            print "--";
+            return;
+        }
+
+        $htmlFileName = $this->outputDirectory . '/' . $filehash . ".html";
+
+        if (file_exists($htmlFileName)) {
+            readfile($htmlFileName);
+            return;
+        }
+        print "--";
+        return;
     }
 
     /**
